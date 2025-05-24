@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>You are Offline - SafeWay Invoicing</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif; /* Using your app's font */
+            background-color: #f0f0f0; /* Matches --color-light-gray */
+            color: #1E2019; /* Matches --color-darkest */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 2.5rem;
+            color: #82B944; /* Matches --color-accent */
+            margin-bottom: 1rem;
+        }
+        p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+            max-width: 500px;
+        }
+        .icon {
+            font-size: 4rem;
+            color: #D1D5DB; /* Matches --color-medium-gray */
+            margin-bottom: 1.5rem;
+        }
+        /* Basic responsive adjustments */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+            p {
+                font-size: 0.95rem;
+            }
+            .icon {
+                font-size: 3rem;
+            }
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="icon">
+        <i class="fas fa-wifi"></i>
+    </div>
+    <h1>You are Offline!</h1>
+    <p>It looks like you're not connected to the internet. Don't worry, you can still access parts of SafeWay Invoicing that have been cached.</p>
+    <p>Please check your network connection and try again for full functionality.</p>
+    <p>Thank you for using SafeWay Invoicing!</p>
+</body>
+</html>

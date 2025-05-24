@@ -1,0 +1,2161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
+    <title>SafeWay Invoicing</title>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#82B944">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SafeWayInv">
+
+    <link rel="apple-touch-icon" href="images/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="images/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="images/icon-512x512.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    </head>
+<body>
+    <div class="app-container">
+
+        <div id="loginScreen" class="page flex flex-col items-center justify-center p-6">
+            <div class="w-full max-w-sm bg-white shadow-xl rounded-lg p-8">
+                <img src="images/icon-256x256.png" alt="SafeWay Logo" class="mx-auto mb-6 h-16 w-auto"
+                     onerror="this.onerror=null; this.src='https://placehold.co/200x80/cccccc/333333?text=Logo+Not+Found';">
+                <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">SafeWay Invoicing</h2>
+                <form id="loginForm">
+                    <div class="mb-4">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" id="username" name="username" class="form-input" required>
+                    </div>
+                    <div class="mb-6">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" id="password" name="password" class="form-input" required>
+                    </div>
+                    <p id="loginErrorMessage" class="text-red-500 text-sm mb-4 hidden"></p>
+                    <button type="submit" id="loginBtn" class="btn btn-dark w-full">Login</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="workerHomeScreen" class="page hidden">
+            <div class="home-header">
+                <div class="tabs">
+                    <button id="invoicesTabWorker" class="active">Invoices</button>
+                </div>
+                <div class="settings-icon">
+                    <button id="settingsBtnWorker" aria-label="Settings"><i class="fas fa-cog"></i></button>
+                </div>
+            </div>
+            <div class="home-content">
+                <div id="noInvoicesMessage">
+                    <div class="icon"><i class="fas fa-file-alt"></i></div>
+                    <h2>Invoices</h2>
+                    <p>Start by creating an invoice. Look professional to your clients.</p>
+                </div>
+                <div id="savedInvoicesSectionHome" class="w-full max-w-md mx-auto hidden">
+                    <ul id="savedInvoicesListHome" class="space-y-2"></ul>
+                </div>
+            </div>
+            <div class="home-footer">
+                <button id="createInvoiceBtnHome" class="btn btn-dark w-full">Create invoice</button>
+            </div>
+        </div>
+
+        <div id="adminHomeScreen" class="page hidden">
+            <div class="page-header">
+                <span class="header-spacer"></span>
+                <h1>Dashboard</h1>
+                <span class="header-spacer"></span>
+            </div>
+            <div class="admin-main-content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="icon total-invoices"><i class="fas fa-file-invoice-dollar"></i></div>
+                        <div class="number" id="totalInvoicesStat">0</div>
+                        <div class="label">Total Invoices</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon pending"><i class="fas fa-hourglass-half"></i></div>
+                        <div class="number" id="pendingInvoicesStat">0</div>
+                        <div class="label">Pending</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon total-revenue"><i class="fas fa-dollar-sign"></i></div>
+                        <div class="number" id="totalRevenueStat">$0.00</div>
+                        <div class="label">Total Revenue</div>
+                    </div>
+                    <div class="stat-card" style="background-color: var(--color-very-light-accent);">
+                        <div class="icon paid"><i class="fas fa-check-circle"></i></div>
+                        <div class="number" id="paidInvoicesStat">0</div>
+                        <div class="label">Paid</div>
+                    </div>
+                </div>
+                <div class="recent-invoices mt-6 bg-white p-4 rounded-lg shadow">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2>Recent Invoices</h2>
+                        <a href="#" class="see-all" id="seeAllAdminDashboard">See All</a>
+                    </div>
+                    <div id="recentInvoicesListAdmin"></div>
+                </div>
+                <div class="scroll-spacer" style="height: 100px;"></div> </div>
+        </div>
+
+        <div id="adminWorkersScreen" class="page hidden">
+            <div class="page-header">
+                <span class="header-spacer"></span>
+                <h1>Manage Workers</h1>
+                <span class="header-spacer"></span>
+            </div>
+            <div class="admin-main-content">
+                <div class="add-worker-section">
+                    <h2 class="text-xl font-semibold mb-3 text-gray-800">Add New Worker</h2>
+                    <form id="addWorkerForm" class="add-worker-form">
+                        <div class="name-field">
+                            <label for="newWorkerNameInput" class="form-label">Worker Name</label>
+                            <input type="text" id="newWorkerNameInput" class="form-input" placeholder="Enter full name" required>
+                        </div>
+                        <div class="username-field">
+                            <label for="newWorkerUsernameInput" class="form-label">Username</label>
+                            <input type="text" id="newWorkerUsernameInput" class="form-input" placeholder="Create a username" required>
+                        </div>
+                        <div class="password-field">
+                            <label for="newWorkerPasswordInput" class="form-label">Password</label>
+                            <input type="password" id="newWorkerPasswordInput" class="form-input" placeholder="Create a password" required>
+                        </div>
+                        <div class="add-btn-field">
+                            <button type="submit" id="addWorkerBtn" class="btn btn-primary w-full md:w-auto">Add Worker</button>
+                        </div>
+                    </form>
+                </div>
+
+                <h2 class="text-xl font-semibold mb-4 text-gray-800 px-5">Current Workers</h2>
+                <div id="workersListContainer" class="space-y-3 worker-list">
+                </div>
+                <div class="scroll-spacer" style="height: 100px;"></div> </div>
+        </div>
+
+        <div id="adminInvoicesScreen" class="page hidden">
+            <div class="page-header">
+                <span class="header-spacer"></span>
+                <h1>Invoices</h1>
+                <span class="header-spacer"></span>
+            </div>
+            <div class="search-filter-bar">
+                <div class="search-bar-container">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="adminInvoiceSearchInput" placeholder="Search invoices...">
+                    <div class="filter-icon">
+                        <button id="filterBtnInvoices"><i class="fas fa-filter"></i></button>
+                    </div>
+                </div>
+            </div>
+            <div class="filter-tabs">
+                <button class="active" data-filter="all">All</button>
+                <button data-filter="pending">Pending</button>
+                <button data-filter="paid">Paid</button>
+            </div>
+            <div class="admin-main-content invoice-list-container" id="adminInvoiceListContainer">
+                </div>
+            <div class="scroll-spacer" style="height: 100px;"></div> </div>
+
+        <div id="settingsScreen" class="page hidden">
+            <div class="page-header">
+                <button id="backToMainViewBtn" class="btn-back"><i class="fas fa-chevron-left"></i> Back</button>
+                <h1>Settings</h1>
+                <span class="header-spacer"></span> </div>
+            <div class="settings-content">
+                <p class="mb-2">Logged in as: <span id="loggedInUserDisplay" class="font-semibold">N/A</span></p>
+                <button id="logoutBtn" class="btn btn-danger">Logout</button>
+                <hr class="my-6">
+                <p class="mb-4">Alpha Testing Controls:</p>
+                <button id="toggleViewBtn" class="btn btn-secondary">Toggle Admin/Worker View</button>
+            </div>
+        </div>
+
+        <div id="invoiceFormScreen" class="page hidden">
+            <div class="page-header">
+                <button id="backToCurrentHomeBtn" class="btn-back"><i class="fas fa-chevron-left"></i> Home</button>
+                <h1 id="invoiceFormTitle">New Invoice</h1>
+                <span class="header-spacer"></span>
+            </div>
+
+            <div class="invoice-form-content">
+                <form id="invoiceForm" class="space-y-5">
+                    <div class="card">
+                        <h2 class="text-lg font-semibold mb-3">Invoice Details</h2>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="invoiceNumber" class="form-label">Invoice #</label>
+                                <input type="text" id="invoiceNumber" name="invoiceNumber" class="form-input" required>
+                            </div>
+                            <div>
+                                <label for="invoiceDate" class="form-label">Date</label>
+                                <input type="date" id="invoiceDate" name="invoiceDate" class="form-input" required>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label for="poNumber" class="form-label">P.O. Number</label>
+                                <input type="text" id="poNumber" name="poNumber" class="form-input">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h2 class="text-lg font-semibold mb-3">Customer Information</h2>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="customerName" class="form-label">Name</label>
+                                <input type="text" id="customerName" name="customerName" class="form-input" required>
+                            </div>
+                            <div>
+                                <label for="customerPhone" class="form-label">Phone</label>
+                                <input type="tel" id="customerPhone" name="customerPhone" class="form-input">
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <label for="customerAddress" class="form-label">Address</label>
+                            <input type="text" id="customerAddress" name="customerAddress" class="form-input">
+                        </div>
+                        <div class="mt-4">
+                            <label for="jobAddress" class="form-label">Job Address (if different)</label>
+                            <input type="text" id="jobAddress" name="jobAddress" class="form-input">
+                        </div>
+                        <div class="mt-4">
+                            <label for="typeOfEquipment" class="form-label">Type of Equipment</label>
+                            <textarea id="typeOfEquipment" name="typeOfEquipment" rows="2" class="form-input"></textarea>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h2 class="text-lg font-semibold mb-3">Items / Services</h2>
+                        <div id="lineItemsContainer" class="space-y-3"></div>
+                        <button type="button" id="addItemBtn" class="btn btn-secondary mt-3 text-sm py-2 px-3">Add Item</button>
+                    </div>
+                    <div class="card">
+                        <h2 class="text-lg font-semibold mb-3">Summary</h2>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span class="form-label">Subtotal:</span>
+                                <span id="subtotalDisplay" class="font-medium">$0.00</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                                <div>
+                                    <label for="labor" class="form-label">Labor ($):</label>
+                                    <input type="number" id="labor" name="labor" class="form-input text-right" value="0" min="0" step="0.01">
+                                </div>
+                                <div>
+                                    <label for="serviceCall" class="form-label">Service Call ($):</label>
+                                    <input type="number" id="serviceCall" name="serviceCall" class="form-input text-right" value="0" min="0" step="0.01">
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <label for="salesTaxRate" class="form-label">Sales Tax Rate (%):</label>
+                                <input type="number" id="salesTaxRate" name="salesTaxRate" class="form-input text-right" value="7.75" min="0" step="0.01">
+                            </div>
+                            <div class="flex justify-between mt-1">
+                                <span class="form-label">Calculated Sales Tax:</span>
+                                <span id="salesTaxAmountDisplay" class="font-medium">$0.00</span>
+                            </div>
+                            <hr class="my-3 border-gray-300">
+                            <div class="flex justify-between font-bold text-lg">
+                                <span style="color: var(--color-darkest);">TOTAL:</span>
+                                <span id="totalDisplay" style="color: var(--color-accent);">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" id="signatureSection">
+                        <h2 class="text-lg font-semibold mb-3">Customer Signature</h2>
+                        <div id="signatureLoadingMessage" class="text-sm text-gray-500 italic hidden mb-2">
+                            <i class="fas fa-spinner fa-spin mr-2"></i>Wait, E-signature is loading...
+                        </div>
+                        <div id="signatureDisplayArea">
+                            <img id="previewSignatureImg" src="#" alt="Signature Preview" class="hidden">
+                            <div class="signature-pad-container">
+                                <canvas id="signatureCanvas"></canvas>
+                            </div>
+                        </div>
+                        <div class="signature-pad-actions mt-2">
+                            <button type="button" id="clearSignatureBtn" class="btn btn-secondary btn-sm">Clear Signature</button>
+                            <button type="button" id="confirmSignatureBtn" class="btn btn-primary btn-sm">Confirm Signature</button>
+                        </div>
+                        <div id="signedBySection" class="mt-2 hidden">
+                            <p class="text-sm">Signed by: <span id="signedByName" class="font-medium"></span> (Confirmed)</p>
+                        </div>
+                    </div>
+
+                    <div class="scroll-spacer" style="height: 100px;"></div>
+                </form>
+            </div>
+            <div class="form-actions">
+                <button type="button" id="markAsPaidBtn" class="btn btn-secondary hidden">Mark as Paid</button>
+                <button type="button" id="downloadPdfBtn" class="btn btn-secondary">Download PDF</button>
+                <button type="button" id="clearFormBtn" class="btn btn-secondary">Clear Form</button>
+                <button type="button" id="saveInvoiceBtn" class="btn btn-primary">Save Invoice</button>
+            </div>
+        </div>
+
+        <div id="invoiceViewModal" class="modal-overlay hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modalInvoiceNumber">Invoice #1001</h2>
+                    <button id="modalCloseBtn" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div class="detail-group">
+                            <strong>Date:</strong> <p id="modalInvoiceDate">N/A</p>
+                            <strong>P.O. Number:</strong> <p id="modalPoNumber">N/A</p>
+                        </div>
+                        <div class="detail-group">
+                            <strong>Status:</strong> <p id="modalInvoiceStatus" class="font-semibold">N/A</p>
+                        </div>
+                    </div>
+                    <div class="detail-group mb-3">
+                        <strong>Bill To:</strong>
+                        <p id="modalCustomerName">N/A</p>
+                        <p id="modalCustomerAddress">N/A</p>
+                        <p id="modalCustomerPhone">N/A</p>
+                    </div>
+                    <div id="modalJobAddressSection" class="detail-group mb-3 hidden">
+                        <strong>Job Address:</strong>
+                        <p id="modalJobAddress">N/A</p>
+                    </div>
+                    <div id="modalTypeOfEquipmentSection" class="detail-group mb-4">
+                        <strong>Type of Equipment:</strong>
+                        <p id="modalTypeOfEquipment">N/A</p>
+                    </div>
+
+                    <h3 class="text-md font-semibold mb-1 text-gray-700">Items/Services:</h3>
+                    <table class="items-table w-full text-sm">
+                        <thead>
+                            <tr>
+                                <th class="text-left pb-1">Description</th>
+                                <th class="text-right pb-1">Qty</th>
+                                <th class="text-right pb-1">Price</th>
+                                <th class="text-right pb-1">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalItemsTableBody">
+                            </tbody>
+                    </table>
+
+                    <div class="summary-section mt-4 pt-3 border-t">
+                        <div class="flex justify-end mb-1"><strong class="mr-2">Subtotal:</strong> <span id="modalSubtotal">$0.00</span></div>
+                        <div id="modalLaborRow" class="flex justify-end mb-1 hidden"><strong class="mr-2">Labor:</strong> <span id="modalLabor">$0.00</span></div>
+                        <div id="modalServiceCallRow" class="flex justify-end mb-1 hidden"><strong class="mr-2">Service Call:</strong> <span id="modalServiceCall">$0.00</span></div>
+                        <div id="modalSalesTaxRow" class="flex justify-end mb-1"><strong class="mr-2" id="modalSalesTaxLabel">Sales Tax:</strong> <span id="modalSalesTax">$0.00</span></div>
+                        <div class="flex justify-end font-bold text-lg mt-2"><strong class="mr-2">TOTAL:</strong> <span id="modalTotalAmount" style="color: var(--color-accent);">$0.00</span></div>
+                    </div>
+
+                    <div id="modalSignatureDisplaySection" class="mt-4 pt-3 border-t hidden">
+                        <h3 class="text-md font-semibold mb-1 text-gray-700">Signature:</h3>
+                        <img id="modalSignatureImage" src="#" alt="Customer Signature" class="hidden">
+                        <p id="modalNoSignatureMessage" class="text-sm text-gray-500">No signature provided.</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="modalMarkPaidBtn" class="btn btn-secondary">Mark as Paid</button>
+                    <button id="modalEditBtn" class="btn btn-primary">Edit Invoice</button>
+                    <button id="modalDownloadPdfBtn" class="btn btn-secondary">Download PDF</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="workerDetailModal" class="modal-overlay hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modalWorkerNameHeader">Worker Details</h2>
+                    <button id="modalWorkerCloseBtn" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="detail-group">
+                        <strong>Name:</strong>
+                        <p id="modalWorkerNameDisplay">N/A</p>
+                    </div>
+                    <div class="detail-group">
+                        <strong>Username:</strong>
+                        <p id="modalWorkerUsernameDisplay">N/A</p>
+                    </div>
+                    <div class="detail-group">
+                        <strong>Revenue Generated:</strong>
+                        <p id="modalWorkerRevenue">$0.00</p>
+                    </div>
+                    <div class="detail-group">
+                        <strong>Invoices Made:</strong>
+                        <p id="modalWorkerInvoicesCount">0</p>
+                    </div>
+
+                    <form id="workerCredentialForm" class="space-y-3 hidden">
+                        <h3 class="text-md font-semibold text-gray-700">Update Credentials</h3>
+                        <div>
+                            <label for="modalWorkerNewUsername" class="form-label">New Username</label>
+                            <input type="text" id="modalWorkerNewUsername" class="form-input">
+                        </div>
+                        <div>
+                            <label for="modalWorkerNewPassword" class="form-label">New Password</label>
+                            <input type="password" id="modalWorkerNewPassword" class="form-input">
+                        </div>
+                        <button type="submit" id="saveWorkerCredentialsBtn" class="btn btn-primary btn-sm">Save Credentials</button>
+                        <button type="button" id="cancelWorkerCredentialsBtn" class="btn btn-secondary btn-sm">Cancel</button>
+                    </form>
+                </div>
+                <div class="modal-footer justify-between">
+                    <button id="modalUpdateCredentialsToggleBtn" class="btn btn-secondary">Update Credentials</button>
+                    <button id="modalRemoveWorkerBtn" class="btn btn-danger">Remove Worker</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="confirmationModal" class="modal-overlay hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="confirmationModalTitle">Confirm Action</h2>
+                    <button id="confirmationModalCloseBtn" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p id="confirmationModalMessage">Are you sure?</p>
+                </div>
+                <div class="modal-footer">
+                    <button id="confirmationModalCancelBtn" class="btn btn-secondary">Cancel</button>
+                    <button id="confirmationModalConfirmBtn" class="btn btn-primary">Confirm</button>
+                </div>
+            </div>
+        </div>
+
+
+        <nav class="bottom-nav hidden" id="adminBottomNav">
+            <div class="nav-item">
+                <button class="active" id="adminNavHomeBtn"><i class="fas fa-home"></i>Home</button>
+            </div>
+            <div class="nav-item">
+                <button id="adminNavWorkersBtn"><i class="fas fa-hard-hat"></i>Workers</button>
+            </div>
+            <div class="nav-item-add">
+                <button id="adminNavAddBtn"><i class="fas fa-plus"></i></button>
+            </div>
+            <div class="nav-item">
+                <button id="adminNavInvoicesBtn"><i class="fas fa-list-alt"></i>Invoices</button>
+            </div>
+            <div class="nav-item">
+                <button id="adminNavSettingsBtn"><i class="fas fa-cog"></i>Settings</button>
+            </div>
+        </nav>
+    </div>
+    <div id="message-box"></div>
+
+    <script>
+    // Safeway Invoicing App
+    // v1.40.0: Firestore Save/Load Integration.
+    // - Updated saveInvoiceData to write to Firestore.
+    // - Implemented loadAdminInvoicesListData to read from Firestore.
+
+    // Initialize Firebase
+    const firebaseConfig = {
+        apiKey: "AIzaSyAANLv5Hkidmny-rC35Lgn7XPgFd7PsIWI", // From your Firebase project settings
+        authDomain: "safeway-invoicing.firebaseapp.com",   // From your Firebase project settings
+        projectId: "safeway-invoicing",                    // From your Firebase project settings
+        storageBucket: "safeway-invoicing.firebasestorage.app", // From your Firebase project settings
+        messagingSenderId: "744313510952",                 // From your Firebase project settings
+        appId: "1:744313510952:web:685789022542edcbc6a91d", // From your Firebase project settings
+        measurementId: "G-VM61MEV5N1"                       // From your Firebase project settings (optional)
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth(); // Firebase Authentication instance
+    const db = firebase.firestore(); // Firestore Database instance
+
+    console.log("Firebase Initialized with Firestore and Auth (Compat) - v1.40.0");
+
+
+    // Existing code continues below
+    if (typeof window.jspdf === 'undefined') {
+        console.error("jsPDF library is not loaded! PDF functionality will be unavailable.");
+    }
+    const { jsPDF } = (typeof window.jspdf !== 'undefined') ? window.jspdf : { jsPDF: function() { console.error("jsPDF dummy constructor called"); return { text: function(){}, save: function(){} }; } };
+
+    let signaturePad = null;
+    let confirmedSignatureDataURL = null;
+    let currentUser = null; // This will be set by Firebase onAuthStateChanged
+
+
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log("DOM fully loaded and parsed - v1.40.0");
+
+        // Page Elements
+        const loginScreen = document.getElementById('loginScreen');
+        const workerHomeScreen = document.getElementById('workerHomeScreen');
+        const adminHomeScreen = document.getElementById('adminHomeScreen');
+        const adminInvoicesScreen = document.getElementById('adminInvoicesScreen');
+        const adminWorkersScreen = document.getElementById('adminWorkersScreen');
+        const settingsScreen = document.getElementById('settingsScreen');
+        const invoiceFormScreen = document.getElementById('invoiceFormScreen');
+        const invoiceViewModal = document.getElementById('invoiceViewModal');
+        const workerDetailModal = document.getElementById('workerDetailModal');
+        const confirmationModal = document.getElementById('confirmationModal');
+
+        if (!loginScreen || !workerHomeScreen || !adminHomeScreen || !adminInvoicesScreen || !adminWorkersScreen || !settingsScreen || !invoiceFormScreen || !invoiceViewModal || !workerDetailModal || !confirmationModal) {
+            console.error("CRITICAL ERROR: One or more core page/modal elements not found!"); return;
+        }
+
+        const adminBottomNav = document.getElementById('adminBottomNav');
+        if (!adminBottomNav) { console.error("CRITICAL ERROR: Element adminBottomNav not found!"); return; }
+
+        // Login Screen Elements
+        const loginForm = document.getElementById('loginForm');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const loginErrorMessage = document.getElementById('loginErrorMessage');
+
+        // Settings Screen
+        const logoutBtn = document.getElementById('logoutBtn');
+        const loggedInUserDisplay = document.getElementById('loggedInUserDisplay');
+
+
+        const createInvoiceBtnHome = document.getElementById('createInvoiceBtnHome');
+        const settingsBtnWorker = document.getElementById('settingsBtnWorker');
+        const seeAllAdminDashboard = document.getElementById('seeAllAdminDashboard');
+        const filterBtnInvoices = document.getElementById('filterBtnInvoices');
+        const adminInvoiceListContainer = document.getElementById('adminInvoiceListContainer');
+        const adminInvoiceSearchInput = document.getElementById('adminInvoiceSearchInput');
+
+        const filterTabs = document.querySelectorAll('#adminInvoicesScreen .filter-tabs button');
+
+        const addWorkerForm = document.getElementById('addWorkerForm');
+        const newWorkerNameInput = document.getElementById('newWorkerNameInput');
+        const newWorkerUsernameInput = document.getElementById('newWorkerUsernameInput');
+        const newWorkerPasswordInput = document.getElementById('newWorkerPasswordInput');
+
+        const workersListContainer = document.getElementById('workersListContainer');
+
+        const backToMainViewBtn = document.getElementById('backToMainViewBtn');
+        const toggleViewBtn = document.getElementById('toggleViewBtn');
+        const invoiceForm = document.getElementById('invoiceForm');
+        const invoiceFormTitle = document.getElementById('invoiceFormTitle');
+        const invoiceDateInput = document.getElementById('invoiceDate');
+        const lineItemsContainer = document.getElementById('lineItemsContainer');
+        const addItemBtn = document.getElementById('addItemBtn');
+        const subtotalDisplay = document.getElementById('subtotalDisplay');
+        const totalDisplay = document.getElementById('totalDisplay');
+        const laborInput = document.getElementById('labor');
+        const serviceCallInput = document.getElementById('serviceCall');
+        const salesTaxRateInput = document.getElementById('salesTaxRate');
+        const salesTaxAmountDisplay = document.getElementById('salesTaxAmountDisplay');
+
+        const saveInvoiceBtn = document.getElementById('saveInvoiceBtn');
+        const clearFormBtn = document.getElementById('clearFormBtn');
+        const backToCurrentHomeBtn = document.getElementById('backToCurrentHomeBtn');
+        const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+        const markAsPaidBtn = document.getElementById('markAsPaidBtn');
+        const messageBox = document.getElementById('message-box');
+
+        const signatureCanvas = document.getElementById('signatureCanvas');
+        const signaturePadContainer = document.querySelector('.signature-pad-container');
+        const previewSignatureImg = document.getElementById('previewSignatureImg');
+        const signatureDisplayArea = document.getElementById('signatureDisplayArea');
+        const clearSignatureBtn = document.getElementById('clearSignatureBtn');
+        const confirmSignatureBtn = document.getElementById('confirmSignatureBtn');
+        const signatureSection = document.getElementById('signatureSection');
+        const signedBySection = document.getElementById('signedBySection');
+        const signedByName = document.getElementById('signedByName');
+        const signatureLoadingMessage = document.getElementById('signatureLoadingMessage');
+
+
+        const modalCloseBtn = document.getElementById('modalCloseBtn');
+        const modalInvoiceNumber = document.getElementById('modalInvoiceNumber');
+        const modalInvoiceDate = document.getElementById('modalInvoiceDate');
+        const modalPoNumber = document.getElementById('modalPoNumber');
+        const modalInvoiceStatus = document.getElementById('modalInvoiceStatus');
+        const modalCustomerName = document.getElementById('modalCustomerName');
+        const modalCustomerAddress = document.getElementById('modalCustomerAddress');
+        const modalCustomerPhone = document.getElementById('modalCustomerPhone');
+        const modalJobAddressSection = document.getElementById('modalJobAddressSection');
+        const modalJobAddress = document.getElementById('modalJobAddress');
+        const modalTypeOfEquipmentSection = document.getElementById('modalTypeOfEquipmentSection');
+        const modalTypeOfEquipment = document.getElementById('modalTypeOfEquipment');
+        const modalItemsTableBody = document.getElementById('modalItemsTableBody');
+        const modalSubtotal = document.getElementById('modalSubtotal');
+        const modalLaborRow = document.getElementById('modalLaborRow');
+        const modalLabor = document.getElementById('modalLabor');
+        const modalServiceCallRow = document.getElementById('modalServiceCallRow');
+        const modalServiceCall = document.getElementById('modalServiceCall');
+        const modalSalesTaxRow = document.getElementById('modalSalesTaxRow');
+        const modalSalesTax = document.getElementById('modalSalesTax');
+        const modalSalesTaxLabel = document.getElementById('modalSalesTaxLabel');
+
+        const modalTotalAmount = document.getElementById('modalTotalAmount');
+        const modalMarkPaidBtn = document.getElementById('modalMarkPaidBtn');
+        const modalEditBtn = document.getElementById('modalEditBtn');
+        const modalDownloadPdfBtn = document.getElementById('modalDownloadPdfBtn');
+        const modalSignatureDisplaySection = document.getElementById('modalSignatureDisplaySection');
+        const modalSignatureImage = document.getElementById('modalSignatureImage');
+        const modalNoSignatureMessage = document.getElementById('modalNoSignatureMessage');
+
+
+        const modalWorkerCloseBtn = document.getElementById('modalWorkerCloseBtn');
+        const modalWorkerNameHeader = document.getElementById('modalWorkerNameHeader');
+        const modalWorkerNameDisplay = document.getElementById('modalWorkerNameDisplay');
+        const modalWorkerUsernameDisplay = document.getElementById('modalWorkerUsernameDisplay');
+        const modalWorkerRevenue = document.getElementById('modalWorkerRevenue');
+        const modalWorkerInvoicesCount = document.getElementById('modalWorkerInvoicesCount');
+        const modalRemoveWorkerBtn = document.getElementById('modalRemoveWorkerBtn');
+        const modalUpdateCredentialsToggleBtn = document.getElementById('modalUpdateCredentialsToggleBtn');
+        const workerCredentialForm = document.getElementById('workerCredentialForm');
+        const modalWorkerNewUsername = document.getElementById('modalWorkerNewUsername');
+        const modalWorkerNewPassword = document.getElementById('modalWorkerNewPassword');
+        const saveWorkerCredentialsBtn = document.getElementById('saveWorkerCredentialsBtn');
+        const cancelWorkerCredentialsBtn = document.getElementById('cancelWorkerCredentialsBtn');
+
+
+        const confirmationModalTitle = document.getElementById('confirmationModalTitle');
+        const confirmationModalMessage = document.getElementById('confirmationModalMessage');
+        const confirmationModalCloseBtn = document.getElementById('confirmationModalCloseBtn');
+        const confirmationModalCancelBtn = document.getElementById('confirmationModalCancelBtn');
+        const confirmationModalConfirmBtn = document.getElementById('confirmationModalConfirmBtn');
+        let confirmActionCallback = null;
+
+        let currentEditingInvoiceId = null;
+        let currentAppView = 'login';
+        let previousAppView = 'login';
+        let currentAdminScreen = 'dashboard';
+        let lineItemCount = 0;
+        let currentlyViewedInvoiceData = null;
+        let currentlySelectedWorker = null;
+
+        function showConfirmationModal(title, message, onConfirm) {
+            if(confirmationModalTitle) confirmationModalTitle.textContent = title;
+            if(confirmationModalMessage) confirmationModalMessage.textContent = message;
+            confirmActionCallback = onConfirm;
+            if(confirmationModal) confirmationModal.classList.remove('hidden');
+        }
+
+        function closeConfirmationModal() {
+            if(confirmationModal) confirmationModal.classList.add('hidden');
+            confirmActionCallback = null;
+        }
+
+        if(confirmationModalConfirmBtn) confirmationModalConfirmBtn.addEventListener('click', () => {
+            if (typeof confirmActionCallback === 'function') {
+                confirmActionCallback();
+            }
+            closeConfirmationModal();
+        });
+        if(confirmationModalCancelBtn) confirmationModalCancelBtn.addEventListener('click', closeConfirmationModal);
+        if(confirmationModalCloseBtn) confirmationModalCloseBtn.addEventListener('click', closeConfirmationModal);
+
+        function showPage(pageId) {
+            console.log(`--- showPage called with: ${pageId} ---`);
+            const allPages = [loginScreen, workerHomeScreen, adminHomeScreen, adminInvoicesScreen, adminWorkersScreen, settingsScreen, invoiceFormScreen];
+            const modalElements = [invoiceViewModal, workerDetailModal, confirmationModal];
+            const isTargetModal = modalElements.some(m => m && m.id === pageId);
+
+            if (isTargetModal) {
+                modalElements.forEach(modal => {
+                    if (modal && modal.id === pageId) {
+                        modal.classList.remove('hidden');
+                        console.log(`MODAL VISIBLE: ${modal.id}`);
+                    }
+                });
+                if (adminBottomNav && pageId !== 'loginScreen') {
+                    adminBottomNav.classList.add('hidden');
+                    console.log("Admin bottom nav hidden due to active modal.");
+                }
+            } else {
+                allPages.forEach(page => {
+                    if (page && page.id === pageId) {
+                        page.classList.remove('hidden');
+                        console.log(`MAIN PAGE VISIBLE: ${page.id}`);
+                    } else if (page) {
+                        page.classList.add('hidden');
+                    }
+                });
+                modalElements.forEach(modal => {
+                    if (modal) modal.classList.add('hidden');
+                });
+
+                if (adminBottomNav) {
+                    if (currentUser && currentUser.type === 'admin' && (pageId === 'adminHomeScreen' || pageId === 'adminInvoicesScreen' || pageId === 'adminWorkersScreen')) {
+                        adminBottomNav.classList.remove('hidden');
+                        console.log("Admin bottom nav shown for admin page.");
+                    } else {
+                        adminBottomNav.classList.add('hidden');
+                        console.log("Admin bottom nav hidden (default, non-admin page, or login).");
+                    }
+                }
+                if (!isTargetModal) window.scrollTo(0, 0);
+            }
+            console.log(`--- showPage finished for: ${pageId} ---`);
+        }
+
+
+        function updateAdminNavActiveState(activeNavId) {
+            const navButtons = [adminNavHomeBtn, adminNavWorkersBtn, adminNavInvoicesBtn, adminNavSettingsBtn];
+            navButtons.forEach(btn => {
+                if (btn) {
+                    btn.classList.remove('active');
+                }
+            });
+            const activeBtn = document.getElementById(activeNavId);
+            if(activeBtn) activeBtn.classList.add('active');
+        }
+
+        // --- Signature Pad Functions ---
+        function resizeCanvas() {
+            if (!signatureCanvas || !signaturePad) {
+                console.warn("resizeCanvas called but canvas or signaturePad not ready.");
+                return;
+            }
+
+            if (signaturePadContainer && signaturePadContainer.offsetParent === null) {
+                console.warn("Signature pad container is not visible. Resize skipped.");
+                return;
+            }
+
+            const containerWidth = signaturePadContainer.offsetWidth;
+            if (containerWidth === 0) {
+                console.warn("Signature pad container width is 0. Resize skipped.");
+                return;
+            }
+
+            const ratio =  Math.max(window.devicePixelRatio || 1, 1);
+            signatureCanvas.width = containerWidth * ratio;
+            signatureCanvas.height = 150 * ratio;
+            const ctx = signatureCanvas.getContext("2d");
+            if (ctx) {
+                ctx.scale(ratio, ratio);
+            } else {
+                console.error("Could not get 2D context for signature canvas");
+                return;
+            }
+
+            signaturePad.clear();
+            console.log("Signature canvas resized and cleared. ContainerW:", containerWidth, "CanvasW:", signatureCanvas.width);
+        }
+
+
+        function initializeSignaturePad() {
+            if (typeof SignaturePad === 'undefined') {
+                console.error("SignaturePad library (Szymon Nowak) is not loaded or SignaturePad is not defined globally.");
+                if(signatureLoadingMessage) {
+                    signatureLoadingMessage.textContent = "Error: Signature feature not available.";
+                    signatureLoadingMessage.classList.remove('hidden');
+                }
+                if(confirmSignatureBtn) confirmSignatureBtn.disabled = true;
+                if(clearSignatureBtn) clearSignatureBtn.disabled = true;
+                return;
+            }
+
+            if (signatureCanvas && !signaturePad) {
+                signaturePad = new SignaturePad(signatureCanvas, {
+                    backgroundColor: 'rgb(255, 255, 255)',
+                    penColor: 'rgb(0, 0, 0)'
+                });
+
+                let resizeTimeout;
+                window.addEventListener("resize", () => {
+                    clearTimeout(resizeTimeout);
+                    if (signaturePadContainer && signaturePadContainer.offsetParent !== null) {
+                        resizeTimeout = setTimeout(resizeCanvas, 250);
+                    }
+                });
+                console.log("SignaturePad (Szymon Nowak) initialized");
+            }
+        }
+
+        if(clearSignatureBtn) {
+            clearSignatureBtn.addEventListener('click', () => {
+                if (signaturePad) {
+                    confirmedSignatureDataURL = null;
+
+                    if(previewSignatureImg) {
+                        previewSignatureImg.classList.add('hidden');
+                        previewSignatureImg.src = '#';
+                    }
+                    if(signaturePadContainer) signaturePadContainer.classList.remove('hidden');
+
+                    signaturePad.on();
+                    signaturePad.clear();
+
+                    if(signatureLoadingMessage) signatureLoadingMessage.classList.remove('hidden');
+                    requestAnimationFrame(() => {
+                        resizeCanvas();
+                        if(signatureLoadingMessage) signatureLoadingMessage.classList.add('hidden');
+                    });
+
+                    if(signedBySection) signedBySection.classList.add('hidden');
+                    if(confirmSignatureBtn) confirmSignatureBtn.classList.remove('hidden');
+                    clearSignatureBtn.textContent = "Clear Signature";
+                    console.log("Signature cleared/reset by button. Canvas active.");
+                }
+            });
+        }
+
+        if(confirmSignatureBtn) {
+            confirmSignatureBtn.addEventListener('click', () => {
+                if (signaturePad && !signaturePad.isEmpty()) {
+                    confirmedSignatureDataURL = signaturePad.toDataURL('image/png');
+                    signaturePad.off();
+
+                    if(previewSignatureImg) {
+                        previewSignatureImg.src = confirmedSignatureDataURL;
+                        previewSignatureImg.classList.remove('hidden');
+                    }
+                    if(signaturePadContainer) signaturePadContainer.classList.add('hidden');
+                    if(confirmSignatureBtn) confirmSignatureBtn.classList.add('hidden');
+                    if(clearSignatureBtn) clearSignatureBtn.textContent = "Edit Signature";
+
+                    const custNameEl = document.getElementById('customerName');
+                    const custName = custNameEl ? custNameEl.value : "Customer";
+                    if(signedByName) signedByName.textContent = custName;
+                    if(signedBySection) signedBySection.classList.remove('hidden');
+
+                    showMessage("Signature Confirmed!", "success");
+                } else {
+                    showMessage("Please provide a signature first.", "error");
+                }
+            });
+        }
+
+
+        function showWorkerHomeScreen() {
+            console.log("showWorkerHomeScreen called");
+            currentAppView = 'worker';
+            showPage('workerHomeScreen');
+            loadSavedInvoicesToHome();
+            updateToggleViewButtonText();
+            if(loggedInUserDisplay && currentUser) loggedInUserDisplay.textContent = `${currentUser.displayName || currentUser.email} (Worker)`;
+        }
+
+        function showAdminHomeScreen() {
+            console.log("showAdminHomeScreen called");
+            currentAppView = 'admin';
+            currentAdminScreen = 'dashboard';
+            showPage('adminHomeScreen');
+            updateToggleViewButtonText();
+            loadAdminDashboardData();
+            updateAdminNavActiveState('adminNavHomeBtn');
+            if(loggedInUserDisplay && currentUser) loggedInUserDisplay.textContent = `${currentUser.displayName || currentUser.email} (Admin)`;
+        }
+
+        function showAdminInvoicesScreen() {
+            console.log("showAdminInvoicesScreen called");
+            currentAppView = 'admin';
+            currentAdminScreen = 'invoicesList';
+            showPage('adminInvoicesScreen');
+            loadAdminInvoicesListData(); // This will now load from Firestore
+            updateAdminNavActiveState('adminNavInvoicesBtn');
+        }
+
+        function showAdminWorkersScreen() {
+            console.log("showAdminWorkersScreen called");
+            currentAppView = 'admin';
+            currentAdminScreen = 'workers';
+            showPage('adminWorkersScreen');
+            loadWorkersList();
+            updateAdminNavActiveState('adminNavWorkersBtn');
+        }
+
+        function showSettingsScreen() {
+            console.log(`showSettingsScreen called. currentAppView before setting previous: ${currentAppView}`);
+            previousAppView = currentAppView;
+            console.log(`  previousAppView is now: ${previousAppView}, currentAdminScreen: ${currentAdminScreen}`);
+            showPage('settingsScreen');
+            if (currentUser && currentUser.type === 'admin') {
+                updateAdminNavActiveState('adminNavSettingsBtn');
+                if(toggleViewBtn) toggleViewBtn.classList.remove('hidden');
+            } else {
+                if(toggleViewBtn) toggleViewBtn.classList.add('hidden');
+            }
+            if(loggedInUserDisplay && currentUser) loggedInUserDisplay.textContent = `${currentUser.displayName || currentUser.email} (${currentUser.type || 'User'})`;
+        }
+
+        function showInvoiceFormScreen(invoiceToLoad = null) {
+            console.log("showInvoiceFormScreen called, invoiceToLoad:", invoiceToLoad);
+
+            if (invoiceToLoad && currentUser && currentUser.type === 'worker' && invoiceToLoad.createdByWorkerId !== currentUser.uid) {
+                console.log("Worker attempting to open another worker's invoice. Showing view modal instead.");
+                showInvoiceViewModal(invoiceToLoad);
+                return;
+            }
+
+
+            showPage('invoiceFormScreen');
+            if(invoiceForm) invoiceForm.reset();
+            if(lineItemsContainer) lineItemsContainer.innerHTML = '';
+            lineItemCount = 0;
+            if(invoiceDateInput) setInitialDate();
+
+            confirmedSignatureDataURL = null;
+
+            if(signaturePadContainer) signaturePadContainer.classList.remove('hidden');
+            if(previewSignatureImg) previewSignatureImg.classList.add('hidden');
+            if(confirmSignatureBtn) confirmSignatureBtn.classList.remove('hidden');
+            if(clearSignatureBtn) clearSignatureBtn.textContent = "Clear Signature";
+            if(signedBySection) signedBySection.classList.add('hidden');
+
+            if(signatureLoadingMessage) signatureLoadingMessage.classList.remove('hidden');
+
+            if (!signaturePad && signatureCanvas) {
+                initializeSignaturePad();
+            } else if (signaturePad) {
+                signaturePad.on();
+                signaturePad.clear();
+            }
+
+            requestAnimationFrame(() => {
+                if (signaturePad && signaturePadContainer && signaturePadContainer.offsetParent !== null) {
+                    if (!invoiceToLoad || !invoiceToLoad.signatureDataURL) {
+                        console.log("Applying resize logic for new/unsigned signature pad.");
+                        resizeCanvas();
+                    }
+                }
+                if(signatureLoadingMessage) signatureLoadingMessage.classList.add('hidden');
+            });
+
+            if (currentUser && currentUser.type === 'admin' && invoiceToLoad && markAsPaidBtn) {
+                markAsPaidBtn.classList.remove('hidden');
+                if (invoiceToLoad.status === 'paid') {
+                    markAsPaidBtn.textContent = 'Mark as Unpaid';
+                    markAsPaidBtn.classList.add('btn-primary');
+                    markAsPaidBtn.classList.remove('btn-secondary');
+                } else {
+                    markAsPaidBtn.textContent = 'Mark as Paid';
+                    markAsPaidBtn.classList.add('btn-secondary');
+                    markAsPaidBtn.classList.remove('btn-primary');
+                }
+            } else if (markAsPaidBtn) {
+                markAsPaidBtn.classList.add('hidden');
+            }
+
+
+            if (invoiceToLoad) {
+                currentEditingInvoiceId = invoiceToLoad.id;
+                if(invoiceFormTitle) invoiceFormTitle.textContent = `Edit Invoice #${invoiceToLoad.invoiceNumber}`;
+                if(document.getElementById('invoiceNumber')) document.getElementById('invoiceNumber').value = invoiceToLoad.invoiceNumber;
+                if(invoiceDateInput) invoiceDateInput.value = invoiceToLoad.invoiceDate;
+                if(document.getElementById('poNumber')) document.getElementById('poNumber').value = invoiceToLoad.poNumber || '';
+                if(document.getElementById('customerName')) document.getElementById('customerName').value = invoiceToLoad.customerName;
+                if(document.getElementById('customerPhone')) document.getElementById('customerPhone').value = invoiceToLoad.customerPhone || '';
+                if(document.getElementById('customerAddress')) document.getElementById('customerAddress').value = invoiceToLoad.customerAddress || '';
+                if(document.getElementById('jobAddress')) document.getElementById('jobAddress').value = invoiceToLoad.jobAddress || '';
+                if(document.getElementById('typeOfEquipment')) document.getElementById('typeOfEquipment').value = invoiceToLoad.typeOfEquipment || '';
+
+                if(invoiceToLoad.items && lineItemsContainer) {
+                    invoiceToLoad.items.forEach(item => {
+                        addLineItem(item.description, item.quantity, item.price);
+                    });
+                }
+                if(laborInput) laborInput.value = invoiceToLoad.labor || 0;
+                if(serviceCallInput) serviceCallInput.value = invoiceToLoad.serviceCall || 0;
+                if(salesTaxRateInput) salesTaxRateInput.value = invoiceToLoad.salesTaxRate || 7.75;
+
+
+                if (invoiceToLoad.signatureDataURL) {
+                    confirmedSignatureDataURL = invoiceToLoad.signatureDataURL;
+                    if(previewSignatureImg) {
+                        previewSignatureImg.src = confirmedSignatureDataURL;
+                        previewSignatureImg.classList.remove('hidden');
+                    }
+                    if(signaturePadContainer) signaturePadContainer.classList.add('hidden');
+                    if(signaturePad) signaturePad.off();
+                    if(confirmSignatureBtn) confirmSignatureBtn.classList.add('hidden');
+                    if(clearSignatureBtn) clearSignatureBtn.textContent = "Edit Signature";
+                    if(signedByName) signedByName.textContent = invoiceToLoad.signedBy || invoiceToLoad.customerName || "Customer";
+                    if(signedBySection) signedBySection.classList.remove('hidden');
+                    if(signatureLoadingMessage) signatureLoadingMessage.classList.add('hidden');
+                }
+
+
+            } else {
+                currentEditingInvoiceId = null;
+                if(invoiceFormTitle) invoiceFormTitle.textContent = "New Invoice";
+                if(lineItemsContainer) addLineItem();
+                if(salesTaxRateInput) salesTaxRateInput.value = 7.75;
+            }
+            if(subtotalDisplay && totalDisplay && laborInput && serviceCallInput && salesTaxRateInput) updateTotals();
+
+        }
+
+        function updateToggleViewButtonText() {
+            if (toggleViewBtn && currentUser && currentUser.type === 'admin') {
+                toggleViewBtn.textContent = currentAppView === 'admin' ? "Switch to Worker View (Test)" : "Switch to Admin View (Test)";
+                toggleViewBtn.classList.remove('hidden');
+            } else if (toggleViewBtn) {
+                toggleViewBtn.classList.add('hidden');
+            }
+        }
+
+        function showInvoiceViewModal(invoiceData) {
+            console.log("Showing modal for invoice:", invoiceData);
+            currentlyViewedInvoiceData = invoiceData;
+
+            if(modalInvoiceNumber) modalInvoiceNumber.textContent = `Invoice #${invoiceData.invoiceNumber || 'N/A'}`;
+            if(modalInvoiceDate) modalInvoiceDate.textContent = invoiceData.invoiceDate ? new Date(invoiceData.invoiceDate).toLocaleDateString() : 'N/A';
+            if(modalPoNumber) modalPoNumber.textContent = invoiceData.poNumber || 'N/A';
+
+            const status = invoiceData.status || 'pending';
+            if(modalInvoiceStatus) {
+                modalInvoiceStatus.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+                modalInvoiceStatus.className = `font-semibold status-${status}`;
+            }
+
+            if(modalCustomerName) modalCustomerName.textContent = invoiceData.customerName || 'N/A';
+            if(modalCustomerAddress) modalCustomerAddress.textContent = invoiceData.customerAddress || 'N/A';
+            if(modalCustomerPhone) modalCustomerPhone.textContent = invoiceData.customerPhone || 'N/A';
+
+            if (invoiceData.jobAddress && invoiceData.jobAddress !== invoiceData.customerAddress) {
+                if(modalJobAddress) modalJobAddress.textContent = invoiceData.jobAddress;
+                if(modalJobAddressSection) modalJobAddressSection.classList.remove('hidden');
+            } else {
+                if(modalJobAddressSection) modalJobAddressSection.classList.add('hidden');
+            }
+            if (invoiceData.typeOfEquipment) {
+                if(modalTypeOfEquipment) modalTypeOfEquipment.textContent = invoiceData.typeOfEquipment;
+                if(modalTypeOfEquipmentSection) modalTypeOfEquipmentSection.classList.remove('hidden');
+            } else {
+                if(modalTypeOfEquipmentSection) modalTypeOfEquipmentSection.classList.add('hidden');
+            }
+
+            if(modalItemsTableBody) modalItemsTableBody.innerHTML = '';
+            if (invoiceData.items && invoiceData.items.length > 0) {
+                invoiceData.items.forEach(item => {
+                    const row = `<tr>
+                                    <td>${item.description || ''}</td>
+                                    <td class="text-right">${item.quantity || 0}</td>
+                                    <td class="text-right">${formatAmountForPdf(item.price)}</td>
+                                    <td class="text-right">${formatAmountForPdf(item.total)}</td>
+                                    </tr>`;
+                    if(modalItemsTableBody) modalItemsTableBody.insertAdjacentHTML('beforeend', row);
+                });
+            } else {
+                if(modalItemsTableBody) modalItemsTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-2 text-gray-500">No items</td></tr>';
+            }
+
+            if(modalSubtotal) modalSubtotal.textContent = formatCurrency(invoiceData.subtotal);
+            if(modalLabor) modalLabor.textContent = formatCurrency(invoiceData.labor);
+            if(modalLaborRow) modalLaborRow.classList.toggle('hidden', !(invoiceData.labor > 0));
+            if(modalServiceCall) modalServiceCall.textContent = formatCurrency(invoiceData.serviceCall);
+            if(modalServiceCallRow) modalServiceCallRow.classList.toggle('hidden', !(invoiceData.serviceCall > 0));
+
+            if(modalSalesTaxLabel) modalSalesTaxLabel.textContent = `Sales Tax (${invoiceData.salesTaxRate || 0}%):`;
+            if(modalSalesTax) modalSalesTax.textContent = formatCurrency(invoiceData.salesTaxAmount);
+            if(modalSalesTaxRow) modalSalesTaxRow.classList.toggle('hidden', !(invoiceData.salesTaxAmount > 0));
+
+
+            if(modalTotalAmount) modalTotalAmount.textContent = formatCurrency(invoiceData.total);
+
+            if(modalMarkPaidBtn) {
+                modalMarkPaidBtn.textContent = status === 'paid' ? 'Mark as Unpaid' : 'Mark as Paid';
+                modalMarkPaidBtn.classList.toggle('btn-primary', status === 'paid');
+                modalMarkPaidBtn.classList.toggle('btn-secondary', status !== 'paid');
+            }
+
+            if (modalEditBtn) {
+                if (currentUser && currentUser.type === 'admin') {
+                    modalEditBtn.classList.remove('hidden');
+                } else {
+                    modalEditBtn.classList.add('hidden');
+                }
+            }
+
+
+            if (modalSignatureDisplaySection && modalSignatureImage && modalNoSignatureMessage) {
+                if (invoiceData.signatureDataURL) {
+                    modalSignatureImage.src = invoiceData.signatureDataURL;
+                    modalSignatureImage.classList.remove('hidden');
+                    modalNoSignatureMessage.classList.add('hidden');
+                    modalSignatureDisplaySection.classList.remove('hidden');
+                } else {
+                    modalSignatureImage.classList.add('hidden');
+                    modalNoSignatureMessage.classList.remove('hidden');
+                    modalSignatureDisplaySection.classList.remove('hidden');
+                }
+            }
+
+            showPage('invoiceViewModal');
+        }
+
+        function closeInvoiceViewModal() {
+            if (invoiceViewModal) invoiceViewModal.classList.add('hidden');
+            currentlyViewedInvoiceData = null;
+            if (currentUser && currentUser.type === 'admin') {
+                const activeAdminPage = [adminHomeScreen, adminInvoicesScreen, adminWorkersScreen].find(p => p && !p.classList.contains('hidden'));
+                if (activeAdminPage && adminBottomNav) {
+                    adminBottomNav.classList.remove('hidden');
+                }
+                if (currentAdminScreen === 'invoicesList') {
+                    loadAdminInvoicesListData();
+                } else if (currentAdminScreen === 'dashboard') {
+                    loadAdminDashboardData();
+                }
+            }
+        }
+
+        function showWorkerDetailModal(worker) {
+            console.log("Showing modal for worker:", worker);
+            currentlySelectedWorker = worker;
+
+            if(modalWorkerNameHeader) modalWorkerNameHeader.textContent = worker.name || "Worker Details";
+            if(modalWorkerNameDisplay) modalWorkerNameDisplay.textContent = worker.name || "N/A";
+            if(modalWorkerUsernameDisplay) modalWorkerUsernameDisplay.textContent = worker.usernameForLogin || "Not Set";
+
+            if(modalWorkerRevenue) modalWorkerRevenue.textContent = "$0.00";
+            if(modalWorkerInvoicesCount) modalWorkerInvoicesCount.textContent = "0";
+
+            if(workerCredentialForm) workerCredentialForm.classList.add('hidden');
+            if(modalUpdateCredentialsToggleBtn) modalUpdateCredentialsToggleBtn.textContent = "Update Credentials";
+
+            if(modalWorkerNewUsername) modalWorkerNewUsername.value = worker.usernameForLogin || '';
+            if(modalWorkerNewPassword) modalWorkerNewPassword.value = '';
+
+            showPage('workerDetailModal');
+        }
+
+        function closeWorkerDetailModal() {
+            console.log("Closing worker detail modal");
+            if (workerDetailModal) workerDetailModal.classList.add('hidden');
+            currentlySelectedWorker = null;
+
+            if (currentUser && currentUser.type === 'admin') {
+                const activeAdminPage = [adminHomeScreen, adminInvoicesScreen, adminWorkersScreen].find(p => p && !p.classList.contains('hidden'));
+                if (activeAdminPage && adminBottomNav) {
+                    adminBottomNav.classList.remove('hidden');
+                    console.log("Admin bottom nav restored after closing worker modal.");
+                }
+            }
+
+            if (currentUser && currentUser.type === 'admin' && currentAdminScreen === 'workers') {
+                console.log("Refreshing worker list on adminWorkersScreen after modal close.");
+                loadWorkersList();
+            }
+        }
+
+
+        function showMessage(message, type = 'success', duration = 3000) {
+            if(messageBox) {
+                messageBox.textContent = message;
+                messageBox.className = 'show';
+                messageBox.classList.add(type === 'success' ? 'success' : 'error');
+                setTimeout(() => { messageBox.className = ''; }, duration);
+            }
+        }
+
+        function formatCurrency(amount) {
+            return `$${parseFloat(amount || 0).toFixed(2)}`;
+        }
+
+        function formatAmountForPdf(amount) {
+            return parseFloat(amount || 0).toFixed(2);
+        }
+
+        function addLineItem(description = '', quantity = 1, price = 0.00) {
+            lineItemCount++;
+            const newItemHtml = `
+                <div class="line-item p-3 border border-gray-200 rounded-md bg-gray-50" id="item-${lineItemCount}">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+                        <div class="md:col-span-6 line-item-description-group"> <label for="itemDescription-${lineItemCount}" class="text-xs font-medium text-gray-600 sr-only">Description</label>
+                            <input type="text" value="${description}" id="itemDescription-${lineItemCount}" name="itemDescription-${lineItemCount}" class="form-input mt-1 text-sm" placeholder="Service or Product">
+                            </div>
+                        <div class="md:col-span-2">
+                            <label for="itemQuantity-${lineItemCount}" class="text-xs font-medium text-gray-600 sr-only">Qty</label>
+                            <input type="number" value="${quantity}" id="itemQuantity-${lineItemCount}" name="itemQuantity-${lineItemCount}" class="form-input mt-1 text-sm text-right" min="0" step="any">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="itemPrice-${lineItemCount}" class="text-xs font-medium text-gray-600 sr-only">Unit Price</label>
+                            <input type="number" value="${parseFloat(price || 0).toFixed(2)}" id="itemPrice-${lineItemCount}" name="itemPrice-${lineItemCount}" class="form-input mt-1 text-sm text-right" min="0" step="0.01">
+                        </div>
+                        <div class="md:col-span-1 text-right self-center"> <span id="itemTotal-${lineItemCount}" class="text-sm font-medium text-gray-700">$0.00</span>
+                        </div>
+                        <div class="md:col-span-1 text-right self-center">
+                            <button type="button" class="removeItemBtn btn btn-danger btn-sm p-2 text-xs" data-itemid="${lineItemCount}">&times;</button>
+                        </div>
+                    </div>
+                </div>`;
+            if(lineItemsContainer) lineItemsContainer.insertAdjacentHTML('beforeend', newItemHtml);
+            attachLineItemListeners(lineItemCount);
+            updateLineItemTotal(lineItemCount);
+            updateTotals();
+        }
+
+        function attachLineItemListeners(id) {
+            const quantityInput = document.getElementById(`itemQuantity-${id}`);
+            const priceInput = document.getElementById(`itemPrice-${id}`);
+            const removeItemButton = document.querySelector(`#item-${id} .removeItemBtn`);
+
+            if(quantityInput && priceInput) {
+                [quantityInput, priceInput].forEach(input => {
+                    input.addEventListener('input', () => {
+                        updateLineItemTotal(id);
+                        updateTotals();
+                    });
+                });
+            }
+            if (removeItemButton) {
+                removeItemButton.addEventListener('click', () => {
+                    const itemToRemove = document.getElementById(`item-${id}`);
+                    if(itemToRemove) itemToRemove.remove();
+                    updateTotals();
+                });
+            }
+        }
+
+        function updateLineItemTotal(id) {
+            const quantityEl = document.getElementById(`itemQuantity-${id}`);
+            const priceEl = document.getElementById(`itemPrice-${id}`);
+            if (!quantityEl || !priceEl) return;
+            const quantity = parseFloat(quantityEl.value) || 0;
+            const price = parseFloat(priceEl.value) || 0;
+            const itemTotalEl = document.getElementById(`itemTotal-${id}`);
+            if(itemTotalEl) itemTotalEl.textContent = formatCurrency(quantity * price);
+        }
+
+        function updateTotals() {
+            let subtotal = 0;
+            document.querySelectorAll('.line-item').forEach(item => {
+                const idParts = item.id.split('-');
+                if (idParts.length > 1) {
+                    const id = idParts[1];
+                    const quantityEl = document.getElementById(`itemQuantity-${id}`);
+                    const priceEl = document.getElementById(`itemPrice-${id}`);
+                    if (quantityEl && priceEl) {
+                        subtotal += (parseFloat(quantityEl.value) || 0) * (parseFloat(priceEl.value) || 0);
+                    }
+                }
+            });
+            if(subtotalDisplay) subtotalDisplay.textContent = formatCurrency(subtotal);
+
+            const labor = laborInput ? (parseFloat(laborInput.value) || 0) : 0;
+            const serviceCall = serviceCallInput ? (parseFloat(serviceCallInput.value) || 0) : 0;
+            const taxRate = salesTaxRateInput ? (parseFloat(salesTaxRateInput.value) || 0) : 0;
+
+            const salesTaxAmount = subtotal * (taxRate / 100);
+            if(salesTaxAmountDisplay) salesTaxAmountDisplay.textContent = formatCurrency(salesTaxAmount);
+
+            if(totalDisplay) totalDisplay.textContent = formatCurrency(subtotal + labor + serviceCall + salesTaxAmount);
+        }
+
+        function collectInvoiceData(newStatus = null) {
+            const formData = new FormData(invoiceForm);
+            let sourceDataForUpdate = {};
+
+             if (newStatus && currentlyViewedInvoiceData) {
+                sourceDataForUpdate = currentlyViewedInvoiceData;
+            } else if (currentEditingInvoiceId) {
+                 if(currentlyViewedInvoiceData && currentlyViewedInvoiceData.id === currentEditingInvoiceId){
+                    sourceDataForUpdate = currentlyViewedInvoiceData;
+                } else {
+                    // This part might need adjustment if you're not using localStorage anymore
+                    // For now, it assumes data might be in currentlyViewedInvoiceData or freshly entered
+                    sourceDataForUpdate = {}; // Default to empty if not found elsewhere
+                }
+            }
+
+
+            const invoiceData = {
+                invoiceNumber: formData.get('invoiceNumber'),
+                invoiceDate: formData.get('invoiceDate'),
+                poNumber: formData.get('poNumber'),
+                customerName: formData.get('customerName'),
+                customerPhone: formData.get('customerPhone'),
+                customerAddress: formData.get('customerAddress'),
+                jobAddress: formData.get('jobAddress'),
+                typeOfEquipment: formData.get('typeOfEquipment'),
+                items: [],
+                labor: (parseFloat(laborInput.value) || 0),
+                serviceCall: (parseFloat(serviceCallInput.value) || 0),
+                salesTaxRate: (parseFloat(salesTaxRateInput.value) || 0),
+                salesTaxAmount: 0,
+                subtotal: 0,
+                total: 0,
+                status: newStatus || (currentEditingInvoiceId ? sourceDataForUpdate.status : 'pending'),
+                signatureDataURL: confirmedSignatureDataURL || (currentEditingInvoiceId ? sourceDataForUpdate.signatureDataURL : null),
+                signedBy: (confirmedSignatureDataURL ? (document.getElementById('customerName')?.value || "Customer") : (currentEditingInvoiceId ? sourceDataForUpdate.signedBy : null)),
+            };
+            
+            if(newStatus && currentlyViewedInvoiceData){
+                invoiceData.invoiceNumber = sourceDataForUpdate.invoiceNumber;
+                invoiceData.invoiceDate = sourceDataForUpdate.invoiceDate;
+                invoiceData.items = sourceDataForUpdate.items;
+                invoiceData.labor = sourceDataForUpdate.labor;
+                invoiceData.serviceCall = sourceDataForUpdate.serviceCall;
+                invoiceData.salesTaxRate = sourceDataForUpdate.salesTaxRate;
+                invoiceData.signatureDataURL = sourceDataForUpdate.signatureDataURL;
+                invoiceData.signedBy = sourceDataForUpdate.signedBy;
+            } else {
+                let currentSubtotal = 0;
+                document.querySelectorAll('.line-item').forEach(item => {
+                    const id = item.id.split('-')[1];
+                    const descriptionEl = document.getElementById(`itemDescription-${id}`);
+                    const quantityEl = document.getElementById(`itemQuantity-${id}`);
+                    const priceEl = document.getElementById(`itemPrice-${id}`);
+                    if(descriptionEl && quantityEl && priceEl){
+                        const description = descriptionEl.value;
+                        const quantity = parseFloat(quantityEl.value) || 0;
+                        const price = parseFloat(priceEl.value) || 0;
+                        invoiceData.items.push({ description, quantity, price, total: quantity * price });
+                        currentSubtotal += quantity * price;
+                    }
+                });
+                 invoiceData.subtotal = currentSubtotal;
+            }
+
+
+            if (!invoiceData.subtotal && sourceDataForUpdate.subtotal) {
+                invoiceData.subtotal = sourceDataForUpdate.subtotal;
+            }
+
+            invoiceData.salesTaxAmount = invoiceData.subtotal * (invoiceData.salesTaxRate / 100);
+            invoiceData.total = invoiceData.subtotal + invoiceData.labor + invoiceData.serviceCall + invoiceData.salesTaxAmount;
+            
+            if (currentUser && currentUser.uid) { // Simplified worker check
+                invoiceData.createdByWorkerId = currentUser.uid;
+                invoiceData.workerName = currentUser.displayName || currentUser.email;
+            }
+
+
+            console.log("Collected Invoice Data (for save/pdf):", JSON.stringify(invoiceData));
+            return invoiceData;
+        }
+
+        // REVISED function to save data to Firestore
+        async function saveInvoiceData(invoiceDataToSave, isSilent = false) {
+            console.log("Attempting to save invoice data to Firestore:", invoiceDataToSave);
+            if (!invoiceDataToSave.invoiceNumber || !invoiceDataToSave.customerName) {
+                if (!isSilent) showMessage('Invoice Number and Customer Name are required.', 'error');
+                return false;
+            }
+
+            // Add/update timestamps
+            const timestamp = new Date().toISOString();
+            if (currentEditingInvoiceId) { // If we are editing an existing invoice
+                invoiceDataToSave.updatedAt = timestamp;
+            } else { // If it's a new invoice
+                invoiceDataToSave.createdAt = timestamp;
+                invoiceDataToSave.updatedAt = timestamp; // Also set on creation
+            }
+
+            try {
+                if (currentEditingInvoiceId) {
+                    // This is an existing invoice, so we UPDATE it.
+                    console.log("Updating existing invoice in Firestore:", currentEditingInvoiceId);
+                    const invoiceRef = db.collection('invoices').doc(currentEditingInvoiceId);
+                    await invoiceRef.update(invoiceDataToSave); // .update() only changes fields you provide
+
+                    if (!isSilent) {
+                        showMessage('Invoice updated successfully!', 'success');
+                    }
+                } else {
+                    // This is a new invoice, so we ADD it.
+                    // Firestore will automatically generate a unique ID.
+                    console.log("Adding new invoice to Firestore");
+                    const docRef = await db.collection('invoices').add(invoiceDataToSave);
+                    // currentEditingInvoiceId = docRef.id; // Store the new ID in case we need it immediately
+                    // For a new save, we usually want to clear currentEditingInvoiceId to signal a fresh form next time
+                    
+                    if (!isSilent) {
+                        showMessage('Invoice saved successfully!', 'success');
+                    }
+                }
+                return true;
+            } catch (error) {
+                console.error("Error saving invoice to Firestore:", error);
+                if (!isSilent) showMessage('Error: Could not save to database.', 'error');
+                return false;
+            }
+        }
+
+
+        function loadSavedInvoicesToHome() { console.log("loadSavedInvoicesToHome: Needs Firestore implementation for worker view."); }
+        function loadAdminDashboardData() { console.log("loadAdminDashboardData: Needs Firestore implementation."); }
+        
+        // REVISED function to load all invoices from Firestore for the admin
+        async function loadAdminInvoicesListData() {
+            console.log("Loading all invoices for admin view...");
+            if (!adminInvoiceListContainer) {
+                console.error("adminInvoiceListContainer not found!");
+                return;
+            }
+
+            adminInvoiceListContainer.innerHTML = `<div class="p-4 text-center text-gray-500">Loading invoices...</div>`;
+            
+            try {
+                // Query the 'invoices' collection, ordering by date from newest to oldest
+                // Consider adding .limit() for pagination if you expect thousands of invoices.
+                const querySnapshot = await db.collection('invoices').orderBy('invoiceDate', 'desc').get();
+
+                if (querySnapshot.empty) {
+                    adminInvoiceListContainer.innerHTML = `<div class="p-4 text-center text-gray-500">No invoices found.</div>`;
+                    return;
+                }
+
+                adminInvoiceListContainer.innerHTML = ''; // Clear the loading message
+                let invoices = []; // To hold all invoices before rendering
+
+                querySnapshot.forEach(doc => {
+                    invoices.push({ id: doc.id, ...doc.data() });
+                });
+
+                // Now render all invoices
+                invoices.forEach(invoice => {
+                    const status = invoice.status || 'pending';
+                    const invoiceCardHTML = `
+                        <div class="invoice-card-admin bg-white p-3 rounded-lg shadow hover:shadow-md transition-shadow duration-200 cursor-pointer mb-3" data-invoice-id="${invoice.id}">
+                            <div class="invoice-card-main flex justify-between items-center">
+                                <div>
+                                    <p class="font-bold text-gray-800">${invoice.customerName || 'No Name'}</p>
+                                    <p class="text-sm text-gray-600">Inv #${invoice.invoiceNumber || 'N/A'} &bull; ${invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString() : 'N/A'}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-bold text-lg" style="color: var(--color-accent);">${formatCurrency(invoice.total)}</p>
+                                    <span class="status-badge status-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    adminInvoiceListContainer.insertAdjacentHTML('beforeend', invoiceCardHTML);
+                });
+
+                // Add event listeners to each new card
+                document.querySelectorAll('.invoice-card-admin').forEach(card => {
+                    card.addEventListener('click', () => {
+                        const clickedInvoiceId = card.dataset.invoiceId;
+                        const clickedInvoiceData = invoices.find(inv => inv.id === clickedInvoiceId);
+                        if (clickedInvoiceData) {
+                            showInvoiceViewModal(clickedInvoiceData);
+                        } else {
+                            console.error("Could not find invoice data for ID:", clickedInvoiceId);
+                        }
+                    });
+                });
+
+            } catch (error) {
+                console.error("Error loading invoices from Firestore:", error);
+                adminInvoiceListContainer.innerHTML = `<div class="p-4 text-center text-red-500">Failed to load invoices. Check console for details.</div>`;
+            }
+        }
+
+        function loadWorkersList() { console.log("loadWorkersList: Needs Firebase implementation."); }
+
+
+        function setInitialDate() {
+            if(invoiceDateInput) invoiceDateInput.value = new Date().toISOString().split('T')[0];
+        }
+
+
+        function handleAddWorker(event) {
+            event.preventDefault();
+            showMessage("handleAddWorker: Needs Firebase implementation.", "info");
+        }
+        if(addWorkerForm) addWorkerForm.addEventListener('submit', handleAddWorker);
+
+
+        function removeWorker(workerToRemove) {
+            showMessage("removeWorker: Needs Firebase implementation.", "info");
+        }
+
+        if(modalUpdateCredentialsToggleBtn) modalUpdateCredentialsToggleBtn.addEventListener('click', () => {
+            if(workerCredentialForm) {
+                workerCredentialForm.classList.toggle('hidden');
+                modalUpdateCredentialsToggleBtn.textContent = workerCredentialForm.classList.contains('hidden') ? "Update Credentials" : "Cancel Update";
+                if (!workerCredentialForm.classList.contains('hidden') && currentlySelectedWorker) {
+                    if(modalWorkerNewUsername) modalWorkerNewUsername.value = currentlySelectedWorker.usernameForLogin || '';
+                    if(modalWorkerNewPassword) modalWorkerNewPassword.value = '';
+                }
+            }
+        });
+
+        if(cancelWorkerCredentialsBtn) cancelWorkerCredentialsBtn.addEventListener('click', () => {
+            if(workerCredentialForm) workerCredentialForm.classList.add('hidden');
+            if(modalUpdateCredentialsToggleBtn) modalUpdateCredentialsToggleBtn.textContent = "Update Credentials";
+        });
+
+        if(workerCredentialForm) workerCredentialForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            showMessage("Worker credential update: Needs Firebase implementation.", "info");
+        });
+
+        async function triggerPdfDownload(dataUrl, filename) {
+            if (!dataUrl) {
+                showMessage("No PDF data available to download (dataUrl is null/undefined).", "error");
+                return false;
+            }
+
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+                console.log("Attempting Capacitor PDF download...");
+                showMessage("Capacitor download path (unexpected for PWA).", "info");
+                return false;
+            } else {
+                console.log("Using web browser download method with Blob from Data URI.");
+                console.log("Received dataUrl for Blob method. Type:", typeof dataUrl, "Length:", dataUrl ? dataUrl.length : "N/A");
+                if (typeof dataUrl === 'string') {
+                    console.log("First 100 chars of dataUrl for Blob:", dataUrl.substring(0,100));
+                }
+
+                try {
+                    if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:application/pdf;') || dataUrl.indexOf('base64,') === -1) {
+                        console.error("Invalid data URI format for PDF. dataUrl:", dataUrl);
+                        showMessage('PDF data is invalid. Cannot download.', 'error');
+                        return false;
+                    }
+
+                    const base64Marker = 'base64,';
+                    const base64StartIndex = dataUrl.indexOf(base64Marker);
+                    const base64Part = dataUrl.substring(base64StartIndex + base64Marker.length);
+                    
+                    if (!base64Part) {
+                        console.error("Could not extract Base64 data from PDF URI (base64Part is empty).");
+                        showMessage('PDF data is incomplete. Cannot download.', 'error');
+                        return false;
+                    }
+
+                    const byteString = atob(base64Part);
+                    const mimeString = 'application/pdf';
+                    const ab = new ArrayBuffer(byteString.length);
+                    const ia = new Uint8Array(ab);
+                    for (let i = 0; i < byteString.length; i++) {
+                        ia[i] = byteString.charCodeAt(i);
+                    }
+                    const blob = new Blob([ab], { type: mimeString });
+
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    
+                    setTimeout(() => {
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                        console.log("Blob URL revoked and link removed.");
+                    }, 100);
+
+                    showMessage('PDF Download initiated. Check your browser downloads.', 'success');
+                    return true;
+
+                } catch (e) {
+                    console.error("Error creating blob or triggering download:", e);
+                    showMessage('Error preparing PDF for download. Trying fallback.', 'error');
+                    
+                    console.log("Falling back to direct data URI download method due to Blob error.");
+                    const link = document.createElement('a');
+                    link.href = dataUrl;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    showMessage('PDF Download initiated (fallback). Check your browser downloads.', 'success');
+                    return true;
+                }
+            }
+        }
+
+
+        function generatePDF(invoiceDataForPdf) {
+            console.log("[generatePDF] Starting PDF generation for invoice:", invoiceDataForPdf ? invoiceDataForPdf.invoiceNumber : "Unknown");
+            if (!invoiceDataForPdf) {
+                console.error('[generatePDF] No invoice data provided.');
+                return null;
+            }
+            if (!invoiceDataForPdf.invoiceNumber && !invoiceDataForPdf.customerName) {
+                console.error('[generatePDF] Invoice # or Customer Name is required.');
+                return null;
+            }
+
+            try {
+                const doc = new jsPDF();
+                const pageHeight = doc.internal.pageSize.height;
+                const pageWidth = doc.internal.pageSize.width;
+                const margin = 15;
+                const contentWidth = pageWidth - (2 * margin);
+                let yPos = margin;
+
+                const logoBase64Data = "";
+                const logoDisplayWidth = 80;
+                if (logoBase64Data) {
+                    try {
+                        const logoX = (pageWidth - logoDisplayWidth) / 2;
+                        doc.addImage(logoBase64Data, 'PNG', logoX, yPos, logoDisplayWidth, 0);
+                        yPos += 30;
+                    } catch (e) {
+                        console.error("[generatePDF] Error adding logo image to PDF:", e);
+                    }
+                } else {
+                    yPos += 10;
+                }
+                doc.setFontSize(9);
+                doc.setFont("helvetica", "normal");
+                const addressLine = "2921 W. Central Ave. Unit C, Santa Ana, CA 92704 | Lic. # 821771";
+                doc.text(addressLine, pageWidth / 2, yPos, { align: 'center' });
+                yPos += 5;
+                const phoneLine = "(714) 414-7979 | (805) 201-5815 | (800) 810-3246 | (949) 899-3560 | (310) 903-0212";
+                doc.text(phoneLine, pageWidth / 2, yPos, { align: 'center' });
+                yPos += 10;
+                doc.setFontSize(18);
+                doc.setFont("helvetica", "bold");
+                doc.text("INVOICE", margin, yPos);
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
+                let rightColX = pageWidth - margin - 60;
+                doc.setFont("helvetica", "bold");
+                doc.text("Invoice #:", rightColX, yPos - 8);
+                doc.setFont("helvetica", "normal");
+                doc.text(String(invoiceDataForPdf.invoiceNumber || "N/A"), rightColX + 25, yPos - 8);
+                doc.setFont("helvetica", "bold");
+                doc.text("Date:", rightColX, yPos - 2);
+                doc.setFont("helvetica", "normal");
+                doc.text(invoiceDataForPdf.invoiceDate ? new Date(invoiceDataForPdf.invoiceDate).toLocaleDateString() : "N/A", rightColX + 25, yPos - 2);
+                if (invoiceDataForPdf.poNumber) {
+                    doc.setFont("helvetica", "bold");
+                    doc.text("P.O. Number:", rightColX, yPos + 4);
+                    doc.setFont("helvetica", "normal");
+                    doc.text(String(invoiceDataForPdf.poNumber), rightColX + 25, yPos + 4);
+                }
+                yPos += 10;
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "bold");
+                doc.text("BILL TO:", margin, yPos);
+                yPos += 5;
+                doc.setFont("helvetica", "normal");
+                const billToName = String(invoiceDataForPdf.customerName || "N/A");
+                doc.text(billToName, margin, yPos);
+                yPos += 5;
+                if (invoiceDataForPdf.customerAddress) {
+                    const addressLines = doc.splitTextToSize(String(invoiceDataForPdf.customerAddress), contentWidth / 2 - 5);
+                    doc.text(addressLines, margin, yPos);
+                    yPos += (addressLines.length * 4.5);
+                }
+                if (invoiceDataForPdf.customerPhone) {
+                    doc.text(`Phone: ${invoiceDataForPdf.customerPhone}`, margin, yPos);
+                    yPos += 5;
+                }
+                let jobAddressY = yPos + 5;
+                if (invoiceDataForPdf.jobAddress && invoiceDataForPdf.jobAddress !== invoiceDataForPdf.customerAddress) {
+                    doc.setFont("helvetica", "bold");
+                    doc.text("JOB ADDRESS:", margin, jobAddressY);
+                    jobAddressY += 5;
+                    doc.setFont("helvetica", "normal");
+                    const jobAddressLines = doc.splitTextToSize(String(invoiceDataForPdf.jobAddress), contentWidth / 2 - 5);
+                    doc.text(jobAddressLines, margin, jobAddressY);
+                    jobAddressY += (jobAddressLines.length * 4.5);
+                }
+                yPos = Math.max(yPos, jobAddressY);
+                yPos += 5;
+                if (invoiceDataForPdf.typeOfEquipment) {
+                    doc.setFont("helvetica", "bold");
+                    doc.text("Type of Equipment:", margin, yPos);
+                    yPos += 5;
+                    doc.setFont("helvetica", "normal");
+                    const equipmentLines = doc.splitTextToSize(String(invoiceDataForPdf.typeOfEquipment), contentWidth - (margin*2));
+                    doc.text(equipmentLines, margin, yPos);
+                    yPos += (equipmentLines.length * 4.5);
+                }
+                yPos = Math.max(yPos, 80) + 5;
+
+                const tableBody = invoiceDataForPdf.items.length > 0 ? invoiceDataForPdf.items.map(item => [
+                    item.description || "",
+                    item.quantity || 0,
+                    formatAmountForPdf(item.price),
+                    formatAmountForPdf(item.total)
+                ]) : [["No items listed.", "", "", ""]];
+                doc.autoTable({
+                    startY: yPos,
+                    head: [['Description', 'Qty', 'Unit Price', 'Total']],
+                    body: tableBody,
+                    theme: 'grid',
+                    headStyles: { fillColor: [130, 185, 68], textColor: [255,255,255] },
+                    styles: { fontSize: 9, cellPadding: 1.5 },
+                    columnStyles: {
+                        0: { cellWidth: contentWidth * 0.50 },
+                        1: { cellWidth: contentWidth * 0.12, halign: 'right' },
+                        2: { cellWidth: contentWidth * 0.18, halign: 'right' },
+                        3: { cellWidth: contentWidth * 0.20, halign: 'right' }
+                    },
+                    margin: { left: margin, right: margin },
+                    didDrawPage: function (data) {
+                        yPos = data.cursor.y;
+                    }
+                });
+                yPos = doc.lastAutoTable.finalY;
+
+                let leftTextY = yPos + 7;
+                doc.setFontSize(9);
+                doc.setFont("helvetica", "normal");
+                doc.text(`Technician: ${invoiceDataForPdf.workerName || 'N/A'}`, margin, leftTextY);
+                leftTextY += 5;
+                doc.text("County Tax: N/A", margin, leftTextY);
+                let totalsY = yPos + 7;
+                const totalsXLabel = pageWidth - margin - 60;
+                const totalsXValue = pageWidth - margin - 5;
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
+                doc.text("Subtotal (Parts):", totalsXLabel, totalsY, {align: 'left'});
+                doc.text(formatAmountForPdf(invoiceDataForPdf.subtotal), totalsXValue, totalsY, {align: 'right'});
+                totalsY += 6;
+                if (invoiceDataForPdf.labor > 0 || invoiceDataForPdf.labor === 0) {
+                    doc.text("Labor:", totalsXLabel, totalsY, {align: 'left'});
+                    doc.text(formatAmountForPdf(invoiceDataForPdf.labor), totalsXValue, totalsY, {align: 'right'});
+                    totalsY += 6;
+                }
+                if (invoiceDataForPdf.serviceCall > 0 || invoiceDataForPdf.serviceCall === 0) {
+                    doc.text("Service Call:", totalsXLabel, totalsY, {align: 'left'});
+                    doc.text(formatAmountForPdf(invoiceDataForPdf.serviceCall), totalsXValue, totalsY, {align: 'right'});
+                    totalsY += 6;
+                }
+                doc.text(`Sales Tax (${invoiceDataForPdf.salesTaxRate || 0}%):`, totalsXLabel, totalsY, {align: 'left'});
+                doc.text(formatAmountForPdf(invoiceDataForPdf.salesTaxAmount), totalsXValue, totalsY, {align: 'right'});
+                totalsY += 8;
+                doc.setFontSize(11);
+                doc.setFont("helvetica", "bold");
+                doc.text("Total Due:", totalsXLabel, totalsY, {align: 'left'});
+                doc.text(formatCurrency(invoiceDataForPdf.total), totalsXValue, totalsY, {align: 'right'});
+                yPos = Math.max(leftTextY + 10, totalsY + 10);
+                if (invoiceDataForPdf.signatureDataURL) {
+                    try {
+                        const sigX = margin;
+                        const sigY = yPos + 5;
+                        const sigMaxHeight = 30;
+                        const sigMaxWidth = contentWidth / 2;
+                        doc.addImage(invoiceDataForPdf.signatureDataURL, 'PNG', sigX, sigY, sigMaxWidth, sigMaxHeight, undefined, 'FAST');
+                        yPos = sigY + sigMaxHeight + 2;
+                        if (invoiceDataForPdf.signedBy) {
+                            doc.setFontSize(8);
+                            doc.setFont("helvetica", "italic");
+                            doc.text(`Signed by: ${invoiceDataForPdf.signedBy}`, sigX, yPos);
+                            yPos += 5;
+                        }
+                    } catch (e) {
+                        console.error("[generatePDF] Error adding signature to PDF:", e);
+                    }
+                }
+
+                doc.setFontSize(8);
+                doc.setFont("helvetica", "normal");
+                const footerText1 = "Payment due upon receipt of invoice. A service charge of $5.00 or 1.5% monthly (whichever is greater) will be charged on all balances over 15 days from date of invoice.";
+                const footerText2 = "Service and Parts Warranty: All new parts described in the invoice are covered by MANUFACTURER'S warranty. Safeway Garage Doors agrees to supply said in-warranty parts for one year at no charge. Labor warranty on SERVICE CALLS is 30 Days on same problem.";
+                const footerHeight = (doc.splitTextToSize(footerText1, contentWidth).length + doc.splitTextToSize(footerText2, contentWidth).length) * 3.5 + 5;
+                if (yPos + footerHeight > pageHeight - margin) {
+                    doc.addPage();
+                    yPos = margin;
+                }
+                const splitFooter1 = doc.splitTextToSize(footerText1, contentWidth);
+                doc.text(splitFooter1, margin, yPos);
+                yPos += (splitFooter1.length * 3.5) + 2;
+                const splitFooter2 = doc.splitTextToSize(footerText2, contentWidth);
+                doc.text(splitFooter2, margin, yPos);
+
+
+                const pdfOutput = doc.output('datauristring');
+                console.log("[generatePDF] jsPDF output type:", typeof pdfOutput);
+                if (typeof pdfOutput === 'string' && pdfOutput.length > 0) {
+                    console.log("[generatePDF] First 100 chars of jsPDF output:", pdfOutput.substring(0,100));
+                } else {
+                    console.warn("[generatePDF] jsPDF output is not a valid string or is empty:", pdfOutput);
+                }
+                return pdfOutput;
+
+            } catch (e) {
+                console.error("[generatePDF] Critical error during PDF generation process:", e);
+                showMessage('Critical error generating PDF content. Please check console on desktop for details.', 'error', 5000);
+                return null;
+            }
+        }
+
+        // --- Event Listeners & Initialization ---
+        const adminNavHomeBtn = document.getElementById('adminNavHomeBtn');
+        const adminNavWorkersBtn = document.getElementById('adminNavWorkersBtn');
+        const adminNavAddBtn = document.getElementById('adminNavAddBtn');
+        const adminNavInvoicesBtn = document.getElementById('adminNavInvoicesBtn');
+        const adminNavSettingsBtn = document.getElementById('adminNavSettingsBtn');
+
+        if(createInvoiceBtnHome) createInvoiceBtnHome.addEventListener('click', () => showInvoiceFormScreen());
+        if(settingsBtnWorker) settingsBtnWorker.addEventListener('click', showSettingsScreen);
+
+        if(seeAllAdminDashboard) seeAllAdminDashboard.addEventListener('click', (e) => {
+            e.preventDefault();
+            showAdminInvoicesScreen();
+        });
+
+
+        if(backToMainViewBtn) backToMainViewBtn.addEventListener('click', () => {
+            console.log(`Settings Back button clicked. previousAppView: ${previousAppView}, currentAdminScreen: ${currentAdminScreen}`);
+            if (currentUser && currentUser.type === 'admin') {
+                if (currentAdminScreen === 'invoicesList') showAdminInvoicesScreen();
+                else if (currentAdminScreen === 'workers') showAdminWorkersScreen();
+                else showAdminHomeScreen();
+            } else { // Worker
+                showWorkerHomeScreen();
+            }
+        });
+        if(toggleViewBtn) toggleViewBtn.addEventListener('click', () => {
+            console.log(`Settings Toggle View button clicked. currentAppView: ${currentAppView}`);
+            if (currentAppView === 'worker') {
+                showAdminHomeScreen();
+            } else {
+                showWorkerHomeScreen();
+            }
+        });
+
+        if(backToCurrentHomeBtn) backToCurrentHomeBtn.addEventListener('click', () => {
+            console.log(`Invoice Form Back button clicked. currentAppView: ${currentAppView}, currentAdminScreen: ${currentAdminScreen}`);
+            if (currentUser && currentUser.type === 'admin') {
+                if (currentAdminScreen === 'invoicesList') showAdminInvoicesScreen();
+                else if (currentAdminScreen === 'workers') showAdminWorkersScreen();
+                else showAdminHomeScreen();
+            } else { // Worker goes to worker home
+                showWorkerHomeScreen();
+            }
+        });
+
+        if(addItemBtn) addItemBtn.addEventListener('click', () => addLineItem());
+        [laborInput, serviceCallInput, salesTaxRateInput].forEach(input => {
+            if(input) input.addEventListener('input', updateTotals);
+        });
+
+        if(saveInvoiceBtn) saveInvoiceBtn.addEventListener('click', async function() {
+            const dataToSave = collectInvoiceData();
+            if (!dataToSave.invoiceNumber || !dataToSave.customerName) {
+                showMessage('Invoice Number and Customer Name are required.', 'error');
+                return;
+            }
+            
+            console.log("[Save Invoice] Data being sent to generatePDF:", JSON.stringify(dataToSave));
+            dataToSave.pdfDataURL = generatePDF(dataToSave);
+            console.log("[Save Invoice] Output from generatePDF (dataToSave.pdfDataURL):", dataToSave.pdfDataURL ? dataToSave.pdfDataURL.substring(0,100) + "..." : "NULL or EMPTY");
+
+            if (!dataToSave.pdfDataURL) {
+                showMessage('Failed to generate PDF data. Invoice will be saved without PDF.', 'warning');
+            }
+
+            if (await saveInvoiceData(dataToSave)) { // Make sure to await the async save function
+                currentEditingInvoiceId = null; // Clear after successful save of new or existing
+                confirmedSignatureDataURL = null;
+                if (currentUser && currentUser.type === 'worker') {
+                     showWorkerHomeScreen();
+                } else if (currentUser && currentUser.type === 'admin') {
+                    if (currentAdminScreen === 'invoicesList') showAdminInvoicesScreen();
+                    else showAdminHomeScreen();
+                } else {
+                    showWorkerHomeScreen();
+                }
+            }
+        });
+
+        if(markAsPaidBtn) markAsPaidBtn.addEventListener('click', async function() {
+            if (currentEditingInvoiceId || currentlyViewedInvoiceData) {
+                const invoiceIdToUpdate = currentEditingInvoiceId || (currentlyViewedInvoiceData ? currentlyViewedInvoiceData.id : null);
+                if (!invoiceIdToUpdate) {
+                    showMessage('No active invoice to mark as paid.', 'error');
+                    return;
+                }
+                
+                // Fetch the latest version of the invoice from Firestore before updating status
+                let originalInvoice;
+                try {
+                    const docSnap = await db.collection('invoices').doc(invoiceIdToUpdate).get();
+                    if (docSnap.exists()) {
+                        originalInvoice = { id: docSnap.id, ...docSnap.data() };
+                    } else {
+                        showMessage('Original invoice not found in database to update status.', 'error');
+                        return;
+                    }
+                } catch (error) {
+                     console.error("Error fetching invoice for status update:", error);
+                     showMessage('Error fetching invoice details.', 'error');
+                     return;
+                }
+
+
+                if (originalInvoice) {
+                    const newStatus = originalInvoice.status === 'paid' ? 'pending' : 'paid';
+                    let dataWithNewStatus = {...originalInvoice, status: newStatus, updatedAt: new Date().toISOString() };
+                    
+                    console.log("[Mark as Paid] Data being sent to generatePDF:", JSON.stringify(dataWithNewStatus));
+                    dataWithNewStatus.pdfDataURL = generatePDF(dataWithNewStatus);
+                    console.log("[Mark as Paid] Output from generatePDF:", dataWithNewStatus.pdfDataURL ? dataWithNewStatus.pdfDataURL.substring(0,100) + "..." : "NULL or EMPTY");
+
+                    if (await saveInvoiceData(dataWithNewStatus, true)) { // Use await and pass true for silent save
+                        showMessage(`Invoice marked as ${newStatus}!`, 'success');
+                        currentEditingInvoiceId = null;
+                        confirmedSignatureDataURL = null;
+                        closeInvoiceViewModal(); // Close modal if open
+                        if (currentUser && currentUser.type === 'admin') {
+                            if (currentAdminScreen === 'invoicesList') showAdminInvoicesScreen();
+                            else if (currentAdminScreen === 'workers') showAdminWorkersScreen();
+                            else showAdminHomeScreen();
+                        } else {
+                            showWorkerHomeScreen();
+                        }
+                    }
+                } else {
+                    showMessage('Original invoice not found to update status.', 'error');
+                }
+            } else {
+                showMessage('No invoice loaded to mark as paid.', 'error');
+            }
+        });
+
+
+        if(clearFormBtn) clearFormBtn.addEventListener('click', () => {
+            showConfirmationModal(
+                "Clear Form",
+                "Are you sure you want to clear the form? Unsaved data will be lost.",
+                () => {
+                    if(invoiceForm) invoiceForm.reset();
+                    if(lineItemsContainer) lineItemsContainer.innerHTML = '';
+                    lineItemCount = 0;
+                    setInitialDate();
+                    addLineItem();
+                    updateTotals();
+                    currentEditingInvoiceId = null;
+                    if(invoiceFormTitle) invoiceFormTitle.textContent = "New Invoice";
+                    if(markAsPaidBtn) markAsPaidBtn.classList.add('hidden');
+
+                    confirmedSignatureDataURL = null;
+                    if(signaturePad) {
+                        signaturePad.clear();
+                        signaturePad.on();
+                    }
+                    if(previewSignatureImg) previewSignatureImg.classList.add('hidden');
+                    if(signaturePadContainer) signaturePadContainer.classList.remove('hidden');
+                    if(signedBySection) signedBySection.classList.add('hidden');
+                    if(confirmSignatureBtn) confirmSignatureBtn.classList.remove('hidden');
+                    if(clearSignatureBtn) clearSignatureBtn.textContent = "Clear Signature";
+
+                    if(signatureLoadingMessage) signatureLoadingMessage.classList.remove('hidden');
+                    requestAnimationFrame(() => {
+                        if (signaturePadContainer && signaturePadContainer.offsetParent !== null) {
+                           resizeCanvas();
+                        }
+                        if(signatureLoadingMessage) signatureLoadingMessage.classList.add('hidden');
+                    });
+
+                    showMessage('Form cleared.', 'success');
+                }
+            );
+        });
+
+        if(downloadPdfBtn) downloadPdfBtn.addEventListener('click', async () => {
+            let dataForPdfAndSave = collectInvoiceData();
+
+            if (!dataForPdfAndSave.invoiceNumber || !dataForPdfAndSave.customerName) {
+                showMessage('Invoice Number and Customer Name are required to save and download.', 'error');
+                return;
+            }
+            
+            console.log("[Download PDF] Data being sent to generatePDF:", JSON.stringify(dataForPdfAndSave));
+            dataForPdfAndSave.pdfDataURL = generatePDF(dataForPdfAndSave);
+            console.log("[Download PDF] Output from generatePDF (dataForPdfAndSave.pdfDataURL):", dataForPdfAndSave.pdfDataURL ? dataForPdfAndSave.pdfDataURL.substring(0,100) + "..." : "NULL or EMPTY");
+
+
+            if (!dataForPdfAndSave.pdfDataURL) {
+                showMessage('Failed to generate PDF data. Cannot download.', 'error');
+                return;
+            }
+
+            // Save the invoice (even if it's just an update with the PDF data) before downloading
+            if (await saveInvoiceData(dataForPdfAndSave, true)) { // Use await and silent save
+                // currentEditingInvoiceId might have been set if it was a new invoice
+                if(dataForPdfAndSave.signatureDataURL){
+                    confirmedSignatureDataURL = dataForPdfAndSave.signatureDataURL;
+                }
+                const downloadSuccess = await triggerPdfDownload(dataForPdfAndSave.pdfDataURL, `Safeway-Invoice-${dataForPdfAndSave.invoiceNumber || 'draft'}.pdf`);
+            } else {
+                showMessage('Failed to save invoice before downloading PDF.', 'error');
+            }
+        });
+
+        if(modalCloseBtn) modalCloseBtn.addEventListener('click', closeInvoiceViewModal);
+        if(modalMarkPaidBtn) modalMarkPaidBtn.addEventListener('click', async function() {
+            if (currentlyViewedInvoiceData) {
+                const newStatus = currentlyViewedInvoiceData.status === 'paid' ? 'pending' : 'paid';
+                let invoiceToUpdate = { ...currentlyViewedInvoiceData, status: newStatus, updatedAt: new Date().toISOString() };
+                
+                console.log("[Modal Mark Paid] Data being sent to generatePDF:", JSON.stringify(invoiceToUpdate));
+                const updatedPdfData = generatePDF(invoiceToUpdate);
+                console.log("[Modal Mark Paid] Output from generatePDF:", updatedPdfData ? updatedPdfData.substring(0,100) + "..." : "NULL or EMPTY");
+
+                if (updatedPdfData) {
+                    invoiceToUpdate.pdfDataURL = updatedPdfData;
+                } else {
+                    console.warn("[Modal Mark Paid] Could not re-generate PDF on status change. Old PDF data (if any) will be kept.");
+                }
+
+                if (await saveInvoiceData(invoiceToUpdate, true)) { // Use await and silent save
+                    showMessage(`Invoice #${currentlyViewedInvoiceData.invoiceNumber} marked as ${newStatus}.`, 'success');
+                    closeInvoiceViewModal(); // This will also refresh the list if on admin invoice screen
+                }
+            }
+        });
+        if(modalEditBtn) modalEditBtn.addEventListener('click', function() {
+            if (currentlyViewedInvoiceData) {
+                closeInvoiceViewModal();
+                showInvoiceFormScreen(currentlyViewedInvoiceData);
+            }
+        });
+        if(modalDownloadPdfBtn) modalDownloadPdfBtn.addEventListener('click', async function() {
+            if (currentlyViewedInvoiceData && currentlyViewedInvoiceData.pdfDataURL) {
+                console.log("[Modal Download PDF] Using existing pdfDataURL:", currentlyViewedInvoiceData.pdfDataURL.substring(0,100) + "...");
+                await triggerPdfDownload(currentlyViewedInvoiceData.pdfDataURL, `Safeway-Invoice-${currentlyViewedInvoiceData.invoiceNumber || 'draft'}.pdf`);
+            } else if (currentlyViewedInvoiceData) {
+                console.log("[Modal Download PDF] pdfDataURL missing, attempting to generate on the fly.");
+                console.log("[Modal Download PDF] Data being sent to generatePDF:", JSON.stringify(currentlyViewedInvoiceData));
+                const pdfData = generatePDF(currentlyViewedInvoiceData);
+                console.log("[Modal Download PDF] Output from generatePDF:", pdfData ? pdfData.substring(0,100) + "..." : "NULL or EMPTY");
+
+                if (pdfData) {
+                    currentlyViewedInvoiceData.pdfDataURL = pdfData;
+                    if (await saveInvoiceData(currentlyViewedInvoiceData, true)) { // Use await and silent save
+                         await triggerPdfDownload(pdfData, `Safeway-Invoice-${currentlyViewedInvoiceData.invoiceNumber || 'draft'}.pdf`);
+                    } else {
+                        showMessage('Failed to update invoice with new PDF before download.', 'error');
+                    }
+                } else {
+                    showMessage('Failed to generate PDF for download.', 'error');
+                }
+            } else {
+                showMessage('No invoice data to download PDF.', 'error');
+            }
+        });
+        if(modalWorkerCloseBtn) modalWorkerCloseBtn.addEventListener('click', closeWorkerDetailModal);
+        if(modalRemoveWorkerBtn) modalRemoveWorkerBtn.addEventListener('click', function() {
+            console.log("Modal Remove Worker button clicked. currentlySelectedWorker:", currentlySelectedWorker);
+            if (currentlySelectedWorker) {
+                showConfirmationModal(
+                    "Remove Worker",
+                    `Are you sure you want to remove worker "${currentlySelectedWorker.name}"?`,
+                    () => {
+                        removeWorker(currentlySelectedWorker);
+                        closeWorkerDetailModal();
+                    }
+                );
+            }
+        });
+
+
+        if(adminNavHomeBtn) adminNavHomeBtn.addEventListener('click', () => showAdminHomeScreen());
+        if(adminNavWorkersBtn) adminNavWorkersBtn.addEventListener('click', () => showAdminWorkersScreen());
+        if(adminNavAddBtn) adminNavAddBtn.addEventListener('click', () => showInvoiceFormScreen());
+        if(adminNavInvoicesBtn) adminNavInvoicesBtn.addEventListener('click', () => showAdminInvoicesScreen());
+        if(adminNavSettingsBtn) adminNavSettingsBtn.addEventListener('click', showSettingsScreen);
+
+        if (filterTabs && filterTabs.length > 0) {
+            filterTabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    console.log(`Filter tab clicked: ${this.dataset.filter}`);
+                    filterTabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    loadAdminInvoicesListData();
+                });
+            });
+        } else {
+            console.warn("Filter tabs not found or empty, event listeners not attached.");
+        }
+        if(filterBtnInvoices) filterBtnInvoices.addEventListener('click', () => showMessage('Advanced filters coming soon!', 'success', 1500));
+        if(adminInvoiceSearchInput) adminInvoiceSearchInput.addEventListener('input', () => loadAdminInvoicesListData());
+
+        // Login Form Submission
+        if (loginForm) {
+            loginForm.addEventListener('submit', async function(event) { // Made async
+                event.preventDefault();
+                if (!usernameInput || !passwordInput || !loginErrorMessage) return;
+
+                const usernameOrEmail = usernameInput.value.trim();
+                const password = passwordInput.value.trim();
+                loginErrorMessage.classList.add('hidden');
+                const loginBtn = document.getElementById('loginBtn');
+                if(loginBtn) loginBtn.disabled = true;
+
+                try {
+                    const DUMMY_DOMAIN = 'safewayinvoicing.app';
+                    const emailToLogin = usernameOrEmail.includes('@') ? usernameOrEmail : `${usernameOrEmail}@${DUMMY_DOMAIN}`;
+                    
+                    console.log(`Attempting Firebase login with email: ${emailToLogin}`);
+                    const userCredential = await auth.signInWithEmailAndPassword(emailToLogin, password);
+                    
+                    console.log("Firebase login successful. User object:", userCredential.user);
+                    loginForm.reset();
+
+                } catch (error) {
+                    console.error("Firebase login failed:", error);
+                    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                        loginErrorMessage.textContent = "Invalid username or password.";
+                    } else if (error.code === 'auth/invalid-email') {
+                         loginErrorMessage.textContent = "The username format is incorrect.";
+                    } else {
+                        loginErrorMessage.textContent = "Login failed: " + error.message;
+                    }
+                    loginErrorMessage.classList.remove('hidden');
+                } finally {
+                    if(loginBtn) loginBtn.disabled = false;
+                }
+            });
+        }
+
+        // Logout Button
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                auth.signOut().then(() => {
+                    console.log("User signed out from Firebase.");
+                }).catch((error) => {
+                    console.error("Sign out error", error);
+                    showMessage("Error signing out. Please try again.", "error");
+                });
+            });
+        }
+
+
+        // Initial App State & Auth State Listener
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                console.log("onAuthStateChanged: User is signed in", user);
+                currentUser = user;
+                if (user.email === `admin1@safewayinvoicing.app`) {
+                    currentUser.type = 'admin';
+                    showAdminHomeScreen();
+                } else {
+                    currentUser.type = 'worker';
+                    showWorkerHomeScreen();
+                }
+                if(loggedInUserDisplay) loggedInUserDisplay.textContent = `${user.displayName || user.email} (${currentUser.type})`;
+
+            } else {
+                console.log("onAuthStateChanged: User is signed out");
+                currentUser = null;
+                showPage('loginScreen');
+                if(adminBottomNav) adminBottomNav.classList.add('hidden');
+                if(loggedInUserDisplay) loggedInUserDisplay.textContent = 'N/A';
+            }
+        });
+    });
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
